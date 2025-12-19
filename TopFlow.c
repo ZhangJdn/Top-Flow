@@ -1,5 +1,11 @@
 /*
-Top Flow Quantitative Screening Bot
+Top Flow Quantitative Screening Bot is a C based bot that ranks
+equities by live trading activity measured by a custom metric - "flow score"
+(price-change percentage * trade volume) and sends an alert to a discord channel 
+every 30 minutes
+
+This version is used for API calls not local calls.
+
 https://github.com/ZhangJdn/Top-Flow
 */
 
@@ -11,8 +17,6 @@ https://github.com/ZhangJdn/Top-Flow
 
 #define CMD_SIZE 512
 #define WAIT_THIRTY_MINUTES_BETWEEN_ALERTS 1800000
-#define WAIT_BETWEEN_FETCHING_TICKERS 2000
-
 /*
 Get numeric metrics from JSON by searching for a "key"
 Ignores whitespace until it reaches the key (Values)
@@ -174,8 +178,6 @@ void run_once(const char *api_key, const char *webhook)
         }
 
         free(json);
-        // Wait a few seconds between fetching tickers to ensure rate limits don't apply
-        // Sleep(WAIT_BETWEEN_FETCHING_TICKERS);
     }
 
     if (!top_ticker)
