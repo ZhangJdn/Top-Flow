@@ -6,6 +6,8 @@ every 30 minutes
 
 This version is used for API calls not local calls.
 
+NOTE: This by no means is an indicator to buy/sell any financial asset. Solely used for education purposes. This is not financial advice.
+
 https://github.com/ZhangJdn/Top-Flow
 */
 
@@ -17,6 +19,7 @@ https://github.com/ZhangJdn/Top-Flow
 
 #define CMD_SIZE 512
 #define WAIT_THIRTY_MINUTES_BETWEEN_ALERTS 1800000
+
 /*
 Get numeric metrics from JSON by searching for a "key"
 Ignores whitespace until it reaches the key (Values)
@@ -88,7 +91,7 @@ void send_discord_alert(const char *webhook, const char *message)
     for (int i = 0; message[i] != '\0'; i++)
     {
         // Prevent buffer overlow
-        if (index >= sizeof(safe_message) - 5) // 5 is a safety buffer to gurantee we always have room
+        if (index >= (int)sizeof(safe_message) - 5) // 5 is a safety buffer to gurantee we always have room
             break;
 
         // JSON does not allow newline characters so we must must convert into one line
@@ -125,8 +128,9 @@ void run_once(const char *api_key, const char *webhook)
 
     double      top_flow       = 0.0;
     double      top_price      = 0.0;
-    double      top_volume     = 0.0;
     double      top_change_pct = 0.0;
+    double      top_rvol       = 0.0;
+    double      top_volume     = 0.0;
     const char *top_ticker     = NULL; // Has not been determined yet, so NULL for now
 
     printf("Fetching tickers...\n");
@@ -159,21 +163,33 @@ void run_once(const char *api_key, const char *webhook)
         double change     = get_data(json, "\"change\"");
         double volume     = get_data(json, "\"volume\"");
         double pct_change = get_data(json, "\"percent_change\"");
+        double avg_volume = get_data(json, "\"average_volume\"");
+
+        if (avg_volume <= 0)
+        {
+            free(json);
+            continue;
+        }
 
         // Previous close + change today = Current price; Twelve data API does not have a current price metric
         double price = prev_close + change;
-        double flow  = price * volume;
+        double relative_volume = volume / avg_volume;
+
+        // Calculating flow score (% change * relative volume)
+        double flow = pct_change * relative_volume;
 
         printf(
-            "%s | Price: %.2f | Vol: %.0f | Change: %.2f%% | Flow: %.2f\n",
-            symbol, price, volume, pct_change, flow);
+            "%s | Price: %.2f | Volume: %.0f | RVol %.4f | Change: %.2f%% | DirectionalFlow: %.4f\n",
+            symbol, price, volume, relative_volume, pct_change, flow);
 
-        if (flow > top_flow)
+        // Selects the ticker with the highest absolute flow score. Tracks both BULLISH and BEARISH momentum
+        if (!top_ticker || fabs(flow) > fabs(top_flow))
         {
             top_flow       = flow;
             top_price      = price;
-            top_volume     = volume;
             top_change_pct = pct_change;
+            top_volume     = volume;
+            top_rvol       = relative_volume;
             top_ticker     = symbol;
         }
 
@@ -185,12 +201,16 @@ void run_once(const char *api_key, const char *webhook)
         return;
     }
 
-    printf("===== TOP FLOW =====\n");
-    printf("Ticker: %s\n"        , top_ticker);
-    printf("Price: %.2f\n"       , top_price);
-    printf("Change: %.2f%%\n"    , top_change_pct);
-    printf("Volume: %.0f\n"      , top_volume);
-    printf("Flow Score: %.2f\n\n", top_flow);
+    // Find out if its either TOP BULL or TOP BEAR
+    const char *direction = (top_flow >= 0) ? "TOP BULL FLOW" : "TOP BEAR FLOW";
+
+    printf("===== %s =====\n"           , direction);
+    printf("Ticker: %s\n"               , top_ticker);
+    printf("Price: %.2f\n"              , top_price);
+    printf("Change: %.2f%%\n"           , top_change_pct);
+    printf("Volume: %.0f\n"             , top_volume);            
+    printf("Relative Volume: %.4f\n"    , top_rvol);
+    printf("Directional Flow: %.4f\n\n" , top_flow);
 
     if (webhook)
     {
@@ -198,16 +218,19 @@ void run_once(const char *api_key, const char *webhook)
         snprintf(
             msg,
             sizeof(msg),
-            "TOP FLOW\n"
+            "%s\n"
             "Ticker: %s\n"
             "Price: %.2f\n"
             "Change: %.2f%%\n"
             "Volume: %.0f\n"
-            "Flow: %.2f",
+            "RVol: %.4f\n"
+            "Directional Flow: %.4f",
+            direction,
             top_ticker,
             top_price,
             top_change_pct,
             top_volume,
+            top_rvol,
             top_flow);
 
         send_discord_alert(webhook, msg);
