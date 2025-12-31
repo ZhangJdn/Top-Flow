@@ -1,7 +1,7 @@
 /*
 Top Flow Quantitative Screening Bot is a C based bot that ranks
-equities by live trading activity measured by a custom metric - "flow score"
-(price-change percentage * trade volume) and sends an alert to a discord channel 
+tickers by live trading activity measured by a custom metric - "flow score"
+(price-change percentage * relative volume) and sends an alert to a discord channel 
 every 30 minutes
 
 This version is used for API calls not local calls.
