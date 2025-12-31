@@ -179,7 +179,7 @@ void run_once(const char *api_key, const char *webhook)
         double flow = pct_change * relative_volume;
 
         printf(
-            "%s | Price: %.2f | Volume: %.0f | RVol %.4f | Change: %.2f%% | DirectionalFlow: %.4f\n",
+            "%s | Price: %.2f | Volume: %.0f | RVol %.4f | Change: %.4f%% | DirectionalFlow: %.4f\n",
             symbol, price, volume, relative_volume, pct_change, flow);
 
         // Selects the ticker with the highest absolute flow score. Tracks both BULLISH and BEARISH momentum
@@ -207,7 +207,7 @@ void run_once(const char *api_key, const char *webhook)
     printf("===== %s =====\n"           , direction);
     printf("Ticker: %s\n"               , top_ticker);
     printf("Price: %.2f\n"              , top_price);
-    printf("Change: %.2f%%\n"           , top_change_pct);
+    printf("Change: %.4f%%\n"           , top_change_pct);
     printf("Volume: %.0f\n"             , top_volume);            
     printf("Relative Volume: %.4f\n"    , top_rvol);
     printf("Directional Flow: %.4f\n\n" , top_flow);
@@ -221,7 +221,7 @@ void run_once(const char *api_key, const char *webhook)
             "%s\n"
             "Ticker: %s\n"
             "Price: %.2f\n"
-            "Change: %.2f%%\n"
+            "Change: %.4f%%\n"
             "Volume: %.0f\n"
             "RVol: %.4f\n"
             "Directional Flow: %.4f",
